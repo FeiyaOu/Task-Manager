@@ -1,0 +1,20 @@
+# Local design notes / working docs (not part of deliverable)
+docs/
+
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Env / local config
+.env
+
+# SQLite database
+*.db
+
+# Node / frontend
+node_modules/
+frontend/dist/
