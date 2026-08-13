@@ -8,7 +8,7 @@ Contract: see ``spec/features/01-git-analyzer.md``.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from git import Repo
 from git.exc import InvalidGitRepositoryError, NoSuchPathError
@@ -35,11 +35,14 @@ class CommitFileRecord:
 
 
 def analyze_repository(
-    repo_path: str, since_commit: str | None = None
+    repo_path: str,
+    since_commit: str | None = None,
+    since_date: datetime | None = None,
 ) -> list[CommitFileRecord]:
     """Return commit-file records for ``repo_path``, oldest to newest.
 
     When ``since_commit`` is given, only commits *after* it are returned.
+    When ``since_date`` is given, only commits at or after that time are returned.
     Merge commits (2+ parents) are skipped.
     """
     try:
@@ -50,16 +53,32 @@ def analyze_repository(
     if not repo.head.is_valid():  # no commits yet
         return []
 
+    # A git-side --after hint (1s early so the exact Python filter below never
+    # drops a boundary commit) limits how much history is walked on big repos.
+    kwargs = {}
+    if since_date is not None:
+        hint = (since_date - timedelta(seconds=1)).astimezone(timezone.utc)
+        kwargs["after"] = hint.strftime("%Y-%m-%d %H:%M:%S %z")
+
     if since_commit is None:
-        commits = list(repo.iter_commits())
+        commits = list(repo.iter_commits(**kwargs))
     else:
         try:
             repo.commit(since_commit)
         except (BadName, BadObject, ValueError) as exc:
             raise UnknownCommitError(str(since_commit)) from exc
-        commits = list(repo.iter_commits(f"{since_commit}..HEAD"))
+        commits = list(repo.iter_commits(f"{since_commit}..HEAD", **kwargs))
 
     commits = [c for c in commits if len(c.parents) < 2]
+    if since_date is not None:
+        cutoff = (
+            since_date
+            if since_date.tzinfo is not None
+            else since_date.replace(tzinfo=timezone.utc)
+        )
+        commits = [
+            c for c in commits if c.committed_datetime.astimezone(timezone.utc) >= cutoff
+        ]
     commits.sort(key=lambda c: c.committed_datetime)
 
     records: list[CommitFileRecord] = []

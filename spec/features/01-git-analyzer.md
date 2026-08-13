@@ -7,6 +7,8 @@ Read a local git repository's history and produce raw commit-file records.
 - `repo_path: str` — absolute path to a local git repository.
 - `since_commit: str | None` — optional commit hash; only process commits *after* it
   (incremental refresh). `None` means process full history.
+- `since_date: datetime | None` — optional time cutoff; only process commits whose
+  `committed_at` is at or after this time. Combinable with `since_commit`.
 
 ## Outputs
 - `list[CommitFileRecord]` where each record has:
@@ -28,6 +30,8 @@ Read a local git repository's history and produce raw commit-file records.
 6. When `since_commit` is provided, commits up to and including it are excluded;
    only newer commits are returned.
 7. Results are ordered oldest → newest by `committed_at`.
+8. When `since_date` is provided, only commits with `committed_at >= since_date` are
+   returned (a git `--after` hint bounds the walk; a Python filter enforces exactness).
 
 ## Edge cases
 - Empty repository (no commits) → return `[]`.
