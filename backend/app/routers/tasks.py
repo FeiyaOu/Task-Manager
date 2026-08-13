@@ -28,6 +28,7 @@ def list_tasks(session: Session = Depends(get_session)) -> list[TaskRead]:
                 score=task.score,
                 matched_modules=task.matched_modules,
                 status=task.status,
+                match_tier=task.match_tier,
             )
         )
     return out

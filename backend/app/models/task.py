@@ -21,3 +21,4 @@ class Task(SQLModel, table=True):
     score: float | None = None
     matched_modules: list[str] = Field(default_factory=list, sa_column=Column(JSON))
     reassign_count: int = Field(default=0)
+    match_tier: str | None = None  # module / broadened / text / unassigned

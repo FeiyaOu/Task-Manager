@@ -48,3 +48,18 @@ low score / no match --------------------------> UNASSIGNED
 ## Out of scope
 - Accept/decline endpoints and reassignment loop (interview extension).
 - Notifications/email (v2).
+
+## Tiered fallback (post-v1 improvement)
+When the primary module-scoped match does not clear its gate, assignment relaxes through tiers
+instead of giving up. The first tier whose top score clears its threshold wins; `match_tier`
+(stored on the task and returned in the result) records which one.
+
+| Tier | Scope | Gate | `match_tier` |
+|---|---|---|---|
+| 0 | expertise in `bug.module` (+ keyword) | `ASSIGN_THRESHOLD` | `module` |
+| 1 | walk up the path (`Engine/Physics/` -> `Engine/`), re-rank | `BROADEN_THRESHOLD` | `broadened` |
+| 2 | drop the module; keyword/text match only | `TEXT_THRESHOLD` | `text` |
+| 3 | nothing cleared a gate | — | `unassigned` (best near-miss recorded in `score`/`candidates`) |
+
+Default thresholds are all `0.0` (assign whenever any signal exists). The matcher stays pure;
+`assignment` orchestrates the tiers. "Most-active maintainer" is intentionally not a default tier.
