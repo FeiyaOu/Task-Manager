@@ -17,11 +17,11 @@ def make_engine(database_url: str | None = None):
 engine = make_engine()
 
 
-def create_db_and_tables(engine=engine) -> None:
+def create_db_and_tables(bind=None) -> None:
     # Import models so their tables register on SQLModel.metadata before create_all.
     from app.models import bug, commit, config_state, expertise, task  # noqa: F401
 
-    SQLModel.metadata.create_all(engine)
+    SQLModel.metadata.create_all(bind if bind is not None else engine)
 
 
 def get_session() -> Iterator[Session]:
