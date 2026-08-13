@@ -36,3 +36,15 @@ export interface TaskRead {
   status: TaskStatus
   match_tier: string | null
 }
+
+export interface RepoStatus {
+  repo_path: string
+  last_analyzed_commit: string | null
+  developer_count: number
+  module_count: number
+}
+
+export interface RefreshResult {
+  new_commits: number
+  modules: number
+}

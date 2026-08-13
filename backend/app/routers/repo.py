@@ -3,13 +3,14 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
 
 from app.config import get_settings
 from app.database import get_session
 from app.models.config_state import ConfigState
 from app.models.expertise import Expertise
+from app.services.git_analyzer import NotAGitRepositoryError
 from app.services.repo_ingest import ingest_repo
 
 router = APIRouter(prefix="/api/repo", tags=["repo"])
@@ -28,15 +29,23 @@ def refresh_repo(
     since_date = now - timedelta(days=days) if days is not None else None
     state = session.exec(select(ConfigState)).first()
     since_commit = None if since_date else (state.last_analyzed_commit_hash if state else None)
-    result = ingest_repo(
-        session,
-        settings.repo_path,
-        now=now,
-        lambda_decay=settings.decay_lambda,
-        since_commit=since_commit,
-        since_date=since_date,
-        module_depth=settings.module_depth,
-    )
+    try:
+        result = ingest_repo(
+            session,
+            settings.repo_path,
+            now=now,
+            lambda_decay=settings.decay_lambda,
+            since_commit=since_commit,
+            since_date=since_date,
+            module_depth=settings.module_depth,
+        )
+    except NotAGitRepositoryError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"REPO_PATH is not a valid git repository: {settings.repo_path or '(unset)'}"
+            ),
+        ) from exc
     request.app.state.expertise_cache.load(session)
     return result
 
