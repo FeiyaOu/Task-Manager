@@ -84,3 +84,52 @@ not-yet-specced = the plumbing (config, database, main, models, schemas,
                   expertise_cache, scoring-persistence, watcher)
 ```
 Only genuine non-boilerplate "feature" here is `watcher.py`; everything else is standard glue.
+
+## Feature 05 sub-branch split (as built)
+
+Feature 05 (API) was too large for one branch, so it shipped as three dependency-ordered,
+stacked sub-branches — each its own PR, TDD, green before merge:
+
+| Sub-branch | Scope | PR |
+|---|---|---|
+| `feat/05a-foundation` | `config.py`, `database.py` | #5 |
+| `feat/05b-repo-pipeline` | `commit`/`expertise`/`config_state` models, `repo_ingest.py`, `expertise_cache.py` | #6 |
+| `feat/05c-api` | `main.py`, routers, `TaskRead`, startup cache | — |
+
+05b was **stacked on 05a** (needed its DB helpers) — when opening a stacked PR, set its base to the
+parent branch, not `main`; GitHub auto-retargets to `main` after the parent merges.
+The full breakdown is in `spec/features/05-api.md` → "Implementation (as built)".
+
+## Issues encountered & fixes
+
+Durable record of non-obvious problems hit during feature 05, so they aren't re-debugged later.
+
+### 1. Stray `taskmanager.db` written into the repo during tests
+- **Symptom:** running the *full* suite created `backend/taskmanager.db` (no single test file did
+  it alone — it was a cross-file interaction with the unused module-level default engine).
+- **Cause:** `app.database` creates a module-level `engine` from the default
+  `DATABASE_URL=sqlite:///./taskmanager.db`. Importing the app in tests could touch it.
+- **Fix:** made the suite hermetic — `conftest.py` sets `DATABASE_URL=sqlite://` (in-memory) before
+  app import, mirroring the existing `GIT_CONFIG_*` hardening. Tests inject their own engines.
+  `.gitignore` already covers `*.db` as a backstop.
+
+### 2. Incremental refresh duplicated / miscounted commits with identical timestamps
+- **Symptom:** `test_incremental_no_new_commits_no_duplicates` reported `new_commits == 1` when it
+  should be 0.
+- **Cause:** two seeded commits shared `days_ago=0` (identical `committed_at`). The analyzer sorts
+  by `committed_at`, so `records[-1]` (used as `last_analyzed_commit_hash`) was ambiguous, and the
+  ancestry range `{since}..HEAD` re-fetched an already-persisted commit.
+- **Fix:** added a **DB-level idempotency guard** in `repo_ingest.ingest_repo` — skip any
+  `commit_hash` already persisted. `since_commit` is treated as a fetch optimization only; the DB
+  dedup is the correctness guarantee.
+
+### 3. Making the engine test-injectable for `TestClient`
+- **Need:** API tests must run against an in-memory DB shared across requests.
+- **Fix:** `create_db_and_tables(bind=None)` and `get_session()` resolve the module-global `engine`
+  at **call time**, and `main.py` references `database.engine` lazily. Tests `monkeypatch` a
+  `StaticPool` in-memory engine (StaticPool so all connections share one in-memory DB).
+
+### 4. SQLite drops timezone info on stored datetimes
+- **Symptom:** scoring math on DB-read `committed_at` would mix naive/aware datetimes.
+- **Fix:** `repo_ingest._as_aware()` re-attaches UTC to naive timestamps read back from SQLite
+  before handing them to `compute_expertise`.

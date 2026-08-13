@@ -42,3 +42,39 @@ Expose the v1 HTTP surface with FastAPI. Thin routers that delegate to services.
 ## Out of scope
 - Auth (v2).
 - Accept/decline routes (interview extension) — but `TaskRead` already exposes `status`.
+
+## Implementation (as built)
+
+Feature 05 was delivered in three stacked sub-branches (each its own PR, TDD, green before merge).
+See `spec/dev-notes.md` for the sub-branch rationale and the issues encountered.
+
+### 05a — foundation  (PR #5)
+- `app/config.py` — `Settings` (pydantic-settings): `repo_path`, `database_url`, `decay_lambda`,
+  `max_reassignments`, `assign_threshold`, `cors_origins`; cached `get_settings()`.
+- `app/database.py` — `make_engine()`, `create_db_and_tables(bind=None)`, `get_session()`.
+- Tests: `test_config.py`, `test_database.py` (5).
+
+### 05b — repo pipeline + cache  (PR #6)
+- Models: `models/commit.py` (`commits`), `models/expertise.py` (`expertise`),
+  `models/config_state.py` (`config_state.last_analyzed_commit_hash`).
+- `app/services/repo_ingest.py` — `ingest_repo(session, repo_path, now, lambda_decay, since_commit)`:
+  analyze → persist new commits (idempotent) → recompute expertise **from all commits** →
+  rewrite `expertise` → update `config_state`; returns `{new_commits, modules}`.
+- `app/services/expertise_cache.py` — `ExpertiseCache.load(session)` → `email -> {module -> score}`.
+- Shared `db_session` fixture added to `conftest.py`. Tests: `test_repo_ingest.py`,
+  `test_expertise_cache.py` (9).
+
+### 05c — API layer  (PR to main)
+- `app/main.py` — `create_app()`: CORS + lifespan (create tables + load cache into
+  `app.state.expertise_cache`); mounts routers.
+- `app/routers/` — `bugs.py`, `tasks.py`, `modules.py`, `repo.py` (the five endpoints above).
+- `app/schemas/task.py` — `TaskRead`.
+- Tests: `test_api.py` — 6 FastAPI `TestClient` tests.
+
+### Notes / deviations from the bare spec
+- **Expertise recompute is from-scratch over ALL persisted commits**, not just the new ones —
+  required for correct recency weights (scoring spec Rule 8). `since_commit` only limits what is
+  *fetched* from git, not what is *scored*.
+- **Idempotent commit insert**: `ingest_repo` skips `(commit_hash)` already persisted, so a refresh
+  never duplicates rows even if `since_commit` resolution is ambiguous (see dev-notes issue #2).
+- **`0.0.0.0` bind (Rule 8)** is a run-time concern handled by `run.sh` / uvicorn args, not app code.
