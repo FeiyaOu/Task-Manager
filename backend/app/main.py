@@ -13,7 +13,7 @@ from sqlmodel import Session
 
 import app.database as database
 from app.config import get_settings
-from app.routers import bugs, modules, repo, tasks
+from app.routers import bugs, expertise, modules, repo, tasks
 from app.services.expertise_cache import ExpertiseCache
 
 
@@ -38,7 +38,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    for router in (bugs.router, tasks.router, modules.router, repo.router):
+    for router in (bugs.router, tasks.router, modules.router, repo.router, expertise.router):
         app.include_router(router)
     return app
 

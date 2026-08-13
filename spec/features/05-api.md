@@ -8,7 +8,9 @@ Expose the v1 HTTP surface with FastAPI. Thin routers that delegate to services.
 ### POST /api/bugs
 - **Body:** `BugSubmit { title, description, module, severity }`.
 - **Behavior:** save -> rank -> assign top -> return synchronously.
-- **200:** `AssignmentResult` (bug_id, task_id, assigned_email, score, matched_modules, status).
+- **200:** `AssignmentResult` (bug_id, task_id, assigned_email, score, matched_modules, status,
+  candidates). `candidates` is the full ranked list `[{developer_email, score, matched_modules}]`
+  (winner first) so the UI can show *why* and extensions can reassign to next-best.
 - **Rules:**
   1. Missing required fields -> 422 (Pydantic validation).
   2. Repo not yet analyzed (no expertise) -> task returned with `status = UNASSIGNED`.
@@ -26,6 +28,11 @@ Expose the v1 HTTP surface with FastAPI. Thin routers that delegate to services.
 - **Rules:**
   5. No duplicates.
   6. Reflects the currently analyzed repo (updates after refresh).
+
+### GET /api/expertise
+- **Behavior:** rows from the expertise table (who knows what, how well), score desc.
+- **Optional query params:** `developer` and/or `module` to filter.
+- **200:** `list[ExpertiseRead]` = `{ developer_email, module_path, score, commit_count }`.
 
 ### POST /api/repo/refresh
 - **Behavior:** re-scan git since last analyzed commit, update expertise + cache.
