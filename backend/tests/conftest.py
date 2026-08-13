@@ -19,6 +19,11 @@ import pytest
 os.environ.setdefault("GIT_CONFIG_GLOBAL", os.devnull)
 os.environ.setdefault("GIT_CONFIG_SYSTEM", os.devnull)
 
+# Keep the suite hermetic: the unused module-level default engine points at an
+# in-memory DB so no taskmanager.db is ever written into the repo. Tests inject
+# their own engines for anything that actually persists.
+os.environ.setdefault("DATABASE_URL", "sqlite://")
+
 from git import Actor, Repo  # noqa: E402  (import after env setup, intentional)
 
 
