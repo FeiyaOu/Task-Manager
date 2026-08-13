@@ -6,7 +6,7 @@ Expose the v1 HTTP surface with FastAPI. Thin routers that delegate to services.
 ## Endpoints
 
 ### POST /api/bugs
-- **Body:** `BugSubmit { title, description, module, severity }`.
+- **Body:** `BugSubmit { title, description, modules: list[str], severity }`.
 - **Behavior:** save -> rank -> assign top -> return synchronously.
 - **200:** `AssignmentResult` (bug_id, task_id, assigned_email, score, matched_modules, status,
   candidates). `candidates` is the full ranked list `[{developer_email, score, matched_modules}]`

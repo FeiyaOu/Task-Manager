@@ -36,7 +36,7 @@ export default function TaskTable({ tasks }: Props) {
           {tasks.map((t) => (
             <tr key={t.task_id} className="border-t">
               <td className="px-4 py-2">{t.title}</td>
-              <td className="px-4 py-2">{t.module || '—'}</td>
+              <td className="px-4 py-2">{t.modules.join(', ') || '—'}</td>
               <td className="px-4 py-2">{t.assigned_email || '—'}</td>
               <td className="px-4 py-2">
                 {t.score != null ? t.score.toFixed(2) : '—'}

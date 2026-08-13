@@ -55,7 +55,7 @@ def test_submit_missing_fields_422(api):
 def test_unanalyzed_repo_unassigned(api):
     r = api.post(
         "/api/bugs",
-        json={"title": "t", "description": "d", "module": "auth/"},
+        json={"title": "t", "description": "d", "modules": ["auth/"]},
     )
     assert r.status_code == 200
     body = r.json()
@@ -71,7 +71,7 @@ def test_refresh_then_assign(api, make_repo, monkeypatch):
 
     r = api.post(
         "/api/bugs",
-        json={"title": "login", "description": "auth login fails", "module": "auth/"},
+        json={"title": "login", "description": "auth login fails", "modules": ["auth/"]},
     )
     body = r.json()
     assert body["assigned_email"] == "alice@x.com"
@@ -89,8 +89,8 @@ def test_modules_unique(api, make_repo, monkeypatch):
 # GET /api/tasks Rules 3 + 4: newest first, includes state fields.
 def test_tasks_newest_first_with_fields(api, make_repo, monkeypatch):
     _refresh(api, monkeypatch, _seed_repo(make_repo))
-    api.post("/api/bugs", json={"title": "first", "description": "auth", "module": "auth/"})
-    api.post("/api/bugs", json={"title": "second", "description": "billing", "module": "billing/"})
+    api.post("/api/bugs", json={"title": "first", "description": "auth", "modules": ["auth/"]})
+    api.post("/api/bugs", json={"title": "second", "description": "billing", "modules": ["billing/"]})
 
     tasks = api.get("/api/tasks").json()
     assert tasks[0]["title"] == "second"  # newest first
@@ -146,7 +146,7 @@ def test_bugs_returns_candidates(api, make_repo, monkeypatch):
     _refresh(api, monkeypatch, _seed_repo(make_repo))
     body = api.post(
         "/api/bugs",
-        json={"title": "login", "description": "auth login fails", "module": "auth/"},
+        json={"title": "login", "description": "auth login fails", "modules": ["auth/"]},
     ).json()
     assert body["candidates"][0]["developer_email"] == "alice@x.com"
 
@@ -156,7 +156,7 @@ def test_bugs_returns_match_tier(api, make_repo, monkeypatch):
     _refresh(api, monkeypatch, _seed_repo(make_repo))
     body = api.post(
         "/api/bugs",
-        json={"title": "login", "description": "auth login fails", "module": "auth/"},
+        json={"title": "login", "description": "auth login fails", "modules": ["auth/"]},
     ).json()
     assert body["match_tier"] == "module"
 

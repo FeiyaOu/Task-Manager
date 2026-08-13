@@ -4,7 +4,7 @@ export type TaskStatus = 'pending' | 'accepted' | 'declined' | 'unassigned'
 export interface BugSubmit {
   title: string
   description: string
-  module: string | null
+  modules: string[]
   severity: string | null
 }
 
@@ -29,7 +29,7 @@ export interface TaskRead {
   task_id: number
   bug_id: number
   title: string
-  module: string | null
+  modules: string[]
   assigned_email: string | null
   score: number | null
   matched_modules: string[]

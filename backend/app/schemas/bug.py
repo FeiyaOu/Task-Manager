@@ -9,7 +9,7 @@ from app.models.enums import TaskStatus
 class BugSubmit(BaseModel):
     title: str
     description: str
-    module: str | None = None
+    modules: list[str] = []
     severity: str | None = None
 
 
