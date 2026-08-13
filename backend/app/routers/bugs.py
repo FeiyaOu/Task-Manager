@@ -19,5 +19,12 @@ def submit_bug(
     session: Session = Depends(get_session),
 ) -> AssignmentResult:
     cache = request.app.state.expertise_cache
-    threshold = get_settings().assign_threshold
-    return assign_bug(bug, session, cache.map, threshold=threshold)
+    settings = get_settings()
+    return assign_bug(
+        bug,
+        session,
+        cache.map,
+        threshold=settings.assign_threshold,
+        broaden_threshold=settings.broaden_threshold,
+        text_threshold=settings.text_threshold,
+    )

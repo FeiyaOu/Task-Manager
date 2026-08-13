@@ -15,3 +15,4 @@ class TaskRead(BaseModel):
     score: float | None
     matched_modules: list[str]
     status: TaskStatus
+    match_tier: str | None = None

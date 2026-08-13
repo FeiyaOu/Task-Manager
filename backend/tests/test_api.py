@@ -151,6 +151,16 @@ def test_bugs_returns_candidates(api, make_repo, monkeypatch):
     assert body["candidates"][0]["developer_email"] == "alice@x.com"
 
 
+# POST /api/bugs reports which fallback tier produced the assignment.
+def test_bugs_returns_match_tier(api, make_repo, monkeypatch):
+    _refresh(api, monkeypatch, _seed_repo(make_repo))
+    body = api.post(
+        "/api/bugs",
+        json={"title": "login", "description": "auth login fails", "module": "auth/"},
+    ).json()
+    assert body["match_tier"] == "module"
+
+
 # MODULE_DEPTH config controls how granular the modules are.
 def test_module_depth_config(api, make_repo, monkeypatch):
     repo = make_repo([

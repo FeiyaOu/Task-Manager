@@ -73,9 +73,12 @@ def test_no_developers_unassigned(session):
     assert result.assigned_email is None
 
 
-# Rule 4 (below threshold): top score under threshold -> UNASSIGNED.
+# Below ALL tier thresholds -> UNASSIGNED (module + broaden + text gates).
 def test_below_threshold_unassigned(session):
-    result = assign_bug(_bug(), session, EMAP, threshold=100.0)
+    result = assign_bug(
+        _bug(), session, EMAP,
+        threshold=100.0, broaden_threshold=100.0, text_threshold=100.0,
+    )
     assert result.status == TaskStatus.UNASSIGNED
     assert result.assigned_email is None
 
@@ -129,3 +132,56 @@ def test_result_includes_ranked_candidates(session):
 def test_no_candidates_when_unassigned(session):
     result = assign_bug(_bug(), session, {})
     assert result.candidates == []
+
+
+# Tier 0 (module) assignment records match_tier = "module".
+def test_module_tier_match_tier(session):
+    result = assign_bug(_bug(), session, EMAP)
+    assert result.match_tier == "module"
+    assert session.get(Task, result.task_id).match_tier == "module"
+
+
+# Tier 1 (broaden): a selected sub-module with no expert falls back to its parent.
+def test_broaden_tier_assigns(session):
+    emap = {"alice@x.com": {"Engine/": 50.0}}
+    bug = BugSubmit(
+        title="Crash on load", description="null pointer",
+        module="Engine/Physics/", severity="high",
+    )
+    result = assign_bug(bug, session, emap)
+    assert result.assigned_email == "alice@x.com"
+    assert result.status == TaskStatus.PENDING
+    assert result.match_tier == "broadened"
+
+
+# Tier 2 (text): below the primary gate but a keyword match clears the text gate.
+def test_text_tier_assigns(session):
+    emap = {"alice@x.com": {"billing/": 90.0}}
+    bug = BugSubmit(
+        title="payment", description="billing checkout fails",
+        module="auth/", severity="low",
+    )
+    result = assign_bug(
+        bug, session, emap,
+        threshold=100.0, broaden_threshold=100.0, text_threshold=50.0,
+    )
+    assert result.assigned_email == "alice@x.com"
+    assert result.match_tier == "text"
+
+
+# Tier 3 (unassigned): all gates fail -> UNASSIGNED, but the near-miss is recorded.
+def test_unassigned_records_near_miss(session):
+    emap = {"alice@x.com": {"auth/": 30.0}}
+    bug = BugSubmit(
+        title="unrelated", description="totally different topic",
+        module="auth/", severity="low",
+    )
+    result = assign_bug(
+        bug, session, emap,
+        threshold=100.0, broaden_threshold=100.0, text_threshold=100.0,
+    )
+    assert result.status == TaskStatus.UNASSIGNED
+    assert result.assigned_email is None
+    assert result.match_tier == "unassigned"
+    assert result.score == pytest.approx(30.0)  # near-miss preserved
+    assert result.candidates[0].developer_email == "alice@x.com"
