@@ -149,3 +149,17 @@ def test_bugs_returns_candidates(api, make_repo, monkeypatch):
         json={"title": "login", "description": "auth login fails", "module": "auth/"},
     ).json()
     assert body["candidates"][0]["developer_email"] == "alice@x.com"
+
+
+# MODULE_DEPTH config controls how granular the modules are.
+def test_module_depth_config(api, make_repo, monkeypatch):
+    repo = make_repo([
+        SeededCommit("Alice", "alice@x.com", days_ago=0,
+                     files={"Engine/Physics/x.cpp": "1\n",
+                            "Engine/Audio/y.cpp": "1\n"}),
+    ])
+    monkeypatch.setenv("REPO_PATH", repo)
+    monkeypatch.setenv("MODULE_DEPTH", "2")
+    get_settings.cache_clear()
+    api.post("/api/repo/refresh")
+    assert api.get("/api/modules").json() == ["Engine/Audio/", "Engine/Physics/"]

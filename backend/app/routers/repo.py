@@ -35,6 +35,7 @@ def refresh_repo(
         lambda_decay=settings.decay_lambda,
         since_commit=since_commit,
         since_date=since_date,
+        module_depth=settings.module_depth,
     )
     request.app.state.expertise_cache.load(session)
     return result

@@ -12,7 +12,7 @@ from datetime import timedelta
 import pytest
 
 from app.services.git_analyzer import CommitFileRecord
-from app.services.scoring import ExpertiseCell, compute_expertise
+from app.services.scoring import ExpertiseCell, compute_expertise, module_of
 from tests.conftest import FIXED_NOW
 
 
@@ -43,6 +43,29 @@ def test_module_is_top_level_dir():
         [rec("a@x.com", "auth/sub/login.py", added=1)], now=FIXED_NOW
     )
     assert set(result["a@x.com"]) == {"auth/"}
+
+
+# module_of respects a configurable depth.
+def test_module_of_depth():
+    assert module_of("Engine/Physics/Collision.cpp", depth=1) == "Engine/"
+    assert module_of("Engine/Physics/Collision.cpp", depth=2) == "Engine/Physics/"
+    # Fewer directories than depth -> use what is available.
+    assert module_of("Engine/foo.cpp", depth=2) == "Engine/"
+    # Root file stays "./" at any depth.
+    assert module_of("README.md", depth=2) == "./"
+
+
+# compute_expertise groups by the requested module depth.
+def test_compute_expertise_respects_depth():
+    records = [
+        rec("a@x.com", "Engine/Physics/x.cpp", added=1),
+        rec("a@x.com", "Engine/Audio/y.cpp", added=1),
+    ]
+    depth1 = compute_expertise(records, now=FIXED_NOW, module_depth=1)
+    assert set(depth1["a@x.com"]) == {"Engine/"}
+
+    depth2 = compute_expertise(records, now=FIXED_NOW, module_depth=2)
+    assert set(depth2["a@x.com"]) == {"Engine/Physics/", "Engine/Audio/"}
 
 
 # Rule 2: a file at repo root normalizes to module "./".

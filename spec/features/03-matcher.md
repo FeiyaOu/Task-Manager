@@ -27,6 +27,8 @@ This is the single most important function for the interview extensions
 3. When `bug.module` is provided, a developer's relevance is driven primarily by their
    expertise score in that module.
 4. `matched_modules` contains every module that contributed to a developer's score.
+   Keyword matching tokenizes the **full module path** (e.g. `Engine/Physics/` yields
+   `engine`, `physics`), so a bug mentioning any path segment matches that module.
 5. Ties (equal score) are broken deterministically by `developer_email` ascending,
    so ordering is reproducible in tests.
 6. A developer with zero relevant expertise is excluded from the result.
