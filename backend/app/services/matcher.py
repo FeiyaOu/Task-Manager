@@ -32,25 +32,37 @@ def _tokenize(text: str) -> set[str]:
 
 
 def rank_developers(
-    bug: BugInput, expertise_map: dict[str, dict[str, float]]
+    bug: BugInput,
+    expertise_map: dict[str, dict[str, float]],
+    module_relevance: dict[str, float] | None = None,
 ) -> list[Candidate]:
     """Rank developers best -> worst for ``bug``.
 
-    A developer's relevant modules are the selected modules (``bug.modules``)
-    plus any module whose path shares a word with the bug's title/description.
-    Score sums the developer's expertise over those modules, then applies a soft
+    A module's weight is 1.0 if the user selected it. Otherwise, if
+    ``module_relevance`` is provided (TF-IDF cosine of the bug text vs. each
+    module's commit-message corpus), that graded relevance is the weight; when
+    it is ``None`` we fall back to binary path-token keyword overlap.
+
+    Score sums ``expertise * weight`` over matched modules, then applies a soft
     coverage factor ``(1 + covered)/(1 + |selected|)`` that rewards developers
     who span more of the selected modules. With no selection the factor is 1.0.
     """
     selected = {m for m in (bug.modules or []) if m}
     tokens = _tokenize(f"{bug.title} {bug.description}")
 
+    def weight(module: str) -> float:
+        if module in selected:
+            return 1.0
+        if module_relevance is not None:
+            return module_relevance.get(module, 0.0)
+        return 1.0 if (_tokenize(module) & tokens) else 0.0
+
     candidates: list[Candidate] = []
     for email, modules in expertise_map.items():
         matched = {
-            module: score
+            module: score * w
             for module, score in modules.items()
-            if module in selected or (_tokenize(module) & tokens)
+            if (w := weight(module)) > 0
         }
         total = sum(matched.values())
         if not matched or total <= 0:

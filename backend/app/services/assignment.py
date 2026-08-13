@@ -38,6 +38,7 @@ def assign_bug(
     threshold: float = DEFAULT_THRESHOLD,
     broaden_threshold: float = DEFAULT_THRESHOLD,
     text_threshold: float = DEFAULT_THRESHOLD,
+    module_relevance: dict[str, float] | None = None,
 ) -> AssignmentResult:
     # Rule 1: persist the bug before matching.
     bug_row = Bug(
@@ -54,6 +55,7 @@ def assign_bug(
         return rank_developers(
             BugInput(title=bug.title, description=bug.description, modules=modules),
             expertise_map,
+            module_relevance=module_relevance,
         )
 
     # Tiered fallback: module-scoped -> broaden up the path -> text-only.

@@ -21,6 +21,22 @@ where `covered` = how many selected modules the developer has expertise in. This
 who **span more of the selected modules**, not just whoever has the largest single number. With no
 selection the factor is `1.0` (pure keyword matching).
 
+### Module relevance weighting (optional)
+`rank_developers` accepts an optional `module_relevance: dict[str, float]` — a per-module
+relevance score for the bug text, supplied by the TF-IDF `ModuleIndex` (see below). When
+provided, an unselected module contributes `expertise * relevance` instead of a binary
+token-overlap weight; selected modules always weigh `1.0`; a module with zero relevance is
+excluded. When `module_relevance` is omitted the matcher falls back to binary path-token
+overlap, so existing behaviour is unchanged.
+
+### ModuleIndex (TF-IDF over commit messages)
+`ModuleIndex.build(session, module_depth)` builds one document per module from its stored
+commit messages plus file-path tokens, fits a `TfidfVectorizer`, and exposes
+`relevance(text) -> {module: cosine_similarity}`. This lets bug text like *"billing"* find a
+`payments/` module when developers described that work as *"fix billing"* in their commits.
+Enrichment (commit messages) supplies vocabulary; TF-IDF (IDF) down-weights common words like
+*fix*/*update*. It is still lexical, not semantic — true synonyms need embeddings (out of scope).
+
 ## Outputs
 - `list[Candidate]`, ordered best → worst. Each `Candidate`:
   - `developer_email: str`
