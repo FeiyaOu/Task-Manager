@@ -28,11 +28,11 @@ def session():
         yield s
 
 
-def _bug(module: str | None = "auth/") -> BugSubmit:
+def _bug(modules: list[str] | None = None) -> BugSubmit:
     return BugSubmit(
         title="login broken",
         description="auth login fails",
-        module=module,
+        modules=["auth/"] if modules is None else modules,
         severity="high",
     )
 
@@ -146,7 +146,7 @@ def test_broaden_tier_assigns(session):
     emap = {"alice@x.com": {"Engine/": 50.0}}
     bug = BugSubmit(
         title="Crash on load", description="null pointer",
-        module="Engine/Physics/", severity="high",
+        modules=["Engine/Physics/"], severity="high",
     )
     result = assign_bug(bug, session, emap)
     assert result.assigned_email == "alice@x.com"
@@ -159,7 +159,7 @@ def test_text_tier_assigns(session):
     emap = {"alice@x.com": {"billing/": 90.0}}
     bug = BugSubmit(
         title="payment", description="billing checkout fails",
-        module="auth/", severity="low",
+        modules=["auth/"], severity="low",
     )
     result = assign_bug(
         bug, session, emap,
@@ -174,7 +174,7 @@ def test_unassigned_records_near_miss(session):
     emap = {"alice@x.com": {"auth/": 30.0}}
     bug = BugSubmit(
         title="unrelated", description="totally different topic",
-        module="auth/", severity="low",
+        modules=["auth/"], severity="low",
     )
     result = assign_bug(
         bug, session, emap,

@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 class BugInput:
     title: str = ""
     description: str = ""
-    module: str | None = None
+    modules: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -36,11 +36,13 @@ def rank_developers(
 ) -> list[Candidate]:
     """Rank developers best -> worst for ``bug``.
 
-    A developer's relevant modules are the selected module (``bug.module``) plus
-    any module whose name appears as a keyword in the bug's title/description.
-    Score is the sum of that developer's expertise across those modules.
+    A developer's relevant modules are the selected modules (``bug.modules``)
+    plus any module whose path shares a word with the bug's title/description.
+    Score sums the developer's expertise over those modules, then applies a soft
+    coverage factor ``(1 + covered)/(1 + |selected|)`` that rewards developers
+    who span more of the selected modules. With no selection the factor is 1.0.
     """
-    selected = (bug.module or "").strip()
+    selected = {m for m in (bug.modules or []) if m}
     tokens = _tokenize(f"{bug.title} {bug.description}")
 
     candidates: list[Candidate] = []
@@ -48,15 +50,22 @@ def rank_developers(
         matched = {
             module: score
             for module, score in modules.items()
-            if (selected and module == selected) or (_tokenize(module) & tokens)
+            if module in selected or (_tokenize(module) & tokens)
         }
         total = sum(matched.values())
         if not matched or total <= 0:
             continue
+
+        if selected:
+            covered = sum(1 for m in selected if modules.get(m, 0.0) > 0)
+            coverage = (1 + covered) / (1 + len(selected))
+        else:
+            coverage = 1.0
+
         candidates.append(
             Candidate(
                 developer_email=email,
-                score=float(total),
+                score=float(total) * coverage,
                 matched_modules=sorted(matched),
             )
         )

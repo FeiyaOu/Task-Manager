@@ -13,12 +13,12 @@ const SEVERITIES = ['low', 'medium', 'high', 'critical']
 export default function BugForm({ onSubmit, isSubmitting, ready }: Props) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [module, setModule] = useState('')
+  const [modules, setModules] = useState<string[]>([])
   const [severity, setSeverity] = useState('medium')
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    onSubmit({ title, description, module: module || null, severity })
+    onSubmit({ title, description, modules, severity })
   }
 
   return (
@@ -44,7 +44,7 @@ export default function BugForm({ onSubmit, isSubmitting, ready }: Props) {
         />
       </label>
 
-      <ModuleDropdown value={module} onChange={setModule} />
+      <ModuleDropdown value={modules} onChange={setModules} />
 
       <label className="block">
         <span className="mb-1 block text-sm font-medium">Severity</span>

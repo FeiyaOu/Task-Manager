@@ -11,8 +11,15 @@ This is the single most important function for the interview extensions
 - `bug: BugInput` with at least:
   - `title: str`
   - `description: str`
-  - `module: str | None`   (chosen from the dropdown; may be empty)
+  - `modules: list[str]`   (chosen from the multi-select dropdown; may be empty)
 - `expertise_map: dict[str, dict[str, float]]` — `author_email -> {module -> score}`.
+
+## Scoring (coverage-weighted, soft)
+A developer's matched modules = the selected modules plus any module whose path shares a word
+with the bug's title/description. Score = `sum(expertise over matched) * (1 + covered)/(1 + |selected|)`,
+where `covered` = how many selected modules the developer has expertise in. This rewards developers
+who **span more of the selected modules**, not just whoever has the largest single number. With no
+selection the factor is `1.0` (pure keyword matching).
 
 ## Outputs
 - `list[Candidate]`, ordered best → worst. Each `Candidate`:

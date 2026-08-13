@@ -43,26 +43,27 @@ def assign_bug(
     bug_row = Bug(
         title=bug.title,
         description=bug.description,
-        module=bug.module,
+        modules=bug.modules,
         severity=bug.severity,
     )
     session.add(bug_row)
     session.commit()
     session.refresh(bug_row)
 
-    def rank(module: str | None):
+    def rank(modules: list[str]):
         return rank_developers(
-            BugInput(title=bug.title, description=bug.description, module=module),
+            BugInput(title=bug.title, description=bug.description, modules=modules),
             expertise_map,
         )
 
     # Tiered fallback: module-scoped -> broaden up the path -> text-only.
     # First tier whose top score clears its gate wins.
-    primary = rank(bug.module)
+    primary = rank(bug.modules)
     tiers: list[tuple[str, list, float]] = [("module", primary, threshold)]
-    for parent in _parent_modules(bug.module):
-        tiers.append(("broadened", rank(parent), broaden_threshold))
-    tiers.append(("text", rank(None), text_threshold))
+    broadened = sorted({p for m in bug.modules for p in _parent_modules(m)})
+    if broadened:
+        tiers.append(("broadened", rank(broadened), broaden_threshold))
+    tiers.append(("text", rank([]), text_threshold))
 
     chosen = None
     match_tier = "unassigned"

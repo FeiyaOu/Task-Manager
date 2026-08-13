@@ -1,7 +1,8 @@
-"""Tests for the matcher (feature 03).
+"""Tests for the matcher (feature 03) — multi-module + coverage-weighted.
 
-Each test traces back to a numbered Rule or Edge case in
-``spec/features/03-matcher.md``. The matcher is pure; inputs are built directly.
+The matcher now takes a *list* of selected modules and rewards developers who
+span more of them (coverage), not just whoever has the largest single number.
+Score = sum(expertise over matched modules) * (1 + covered)/(1 + |selected|).
 """
 from __future__ import annotations
 
@@ -9,104 +10,85 @@ import pytest
 
 from app.services.matcher import BugInput, Candidate, rank_developers
 
-EMAP = {
-    "alice@x.com": {"auth/": 50.0, "user/": 10.0},
-    "bob@x.com": {"billing/": 90.0},
-    "carla@x.com": {"auth/": 20.0},
-}
+
+# Empty expertise map -> [].
+def test_empty_map():
+    assert rank_developers(BugInput(modules=["auth/"]), {}) == []
 
 
-# Rule 1 + 2: returns a ranked list (not a winner), sorted by score descending.
-def test_returns_ranked_list_desc():
-    result = rank_developers(BugInput(module="auth/"), EMAP)
-    assert isinstance(result, list)
-    assert [c.developer_email for c in result] == ["alice@x.com", "carla@x.com"]
-    scores = [c.score for c in result]
-    assert scores == sorted(scores, reverse=True)
+# A single selected module matches the developer who has it.
+def test_single_selected_module():
+    emap = {"alice@x.com": {"auth/": 50.0}, "bob@x.com": {"billing/": 90.0}}
+    result = rank_developers(BugInput(modules=["auth/"]), emap)
+    assert [c.developer_email for c in result] == ["alice@x.com"]
 
 
-# Rule 3: when bug.module is provided, relevance is driven by that module's score.
-def test_module_drives_relevance():
-    result = rank_developers(BugInput(module="auth/"), EMAP)
-    assert result[0].developer_email == "alice@x.com"  # 50 in auth/ > carla's 20
-    assert result[0].score == pytest.approx(50.0)
-
-
-# Rule 4: matched_modules contains every module that contributed to the score.
-def test_matched_modules_lists_all_contributors():
-    bug = BugInput(
-        title="billing bug",
-        description="user cannot pay in billing",
-        module="auth/",
-    )
-    result = rank_developers(bug, EMAP)
-    by_email = {c.developer_email: c for c in result}
-
-    # alice: auth/ (selected) + user/ (keyword "user")
-    assert by_email["alice@x.com"].matched_modules == ["auth/", "user/"]
-    assert by_email["alice@x.com"].score == pytest.approx(60.0)
-    # bob: matched purely via the "billing" keyword
-    assert by_email["bob@x.com"].matched_modules == ["billing/"]
-
-
-# Rule 5: ties are broken deterministically by developer_email ascending.
-def test_ties_broken_by_email():
-    tie_map = {
-        "bob@x.com": {"auth/": 30.0},
-        "alice@x.com": {"auth/": 30.0},
+# Coverage: a developer spanning ALL selected modules beats one who is huge in one.
+def test_coverage_beats_magnitude():
+    emap = {
+        "spanner@x.com": {"auth/": 30.0, "payments/": 30.0, "api/": 30.0},
+        "specialist@x.com": {"auth/": 90.0},
     }
-    result = rank_developers(BugInput(module="auth/"), tie_map)
+    result = rank_developers(
+        BugInput(modules=["auth/", "payments/", "api/"]), emap
+    )
+    assert result[0].developer_email == "spanner@x.com"
+    # spanner: 90 * (1+3)/(1+3) = 90 ; specialist: 90 * (1+1)/(1+3) = 45
+    by = {c.developer_email: c for c in result}
+    assert by["spanner@x.com"].score == pytest.approx(90.0)
+    assert by["specialist@x.com"].score == pytest.approx(45.0)
+
+
+# Partial coverage lowers the score but does not eliminate (soft).
+def test_partial_coverage_soft():
+    emap = {"alice@x.com": {"auth/": 40.0}}
+    result = rank_developers(BugInput(modules=["auth/", "payments/"]), emap)
+    # covered 1 of 2 -> factor (1+1)/(1+2)=2/3 -> 40 * 2/3
+    assert result[0].score == pytest.approx(40.0 * 2 / 3)
+
+
+# No selection -> pure keyword matching against module paths (factor 1.0).
+def test_keyword_only_no_selection():
+    emap = {"alice@x.com": {"billing/": 90.0}}
+    result = rank_developers(
+        BugInput(description="fix the billing flow", modules=[]), emap
+    )
+    assert result[0].developer_email == "alice@x.com"
+    assert result[0].score == pytest.approx(90.0)
+
+
+# matched_modules lists selected + keyword-matched contributors.
+def test_matched_modules_listed():
+    emap = {"alice@x.com": {"auth/": 50.0, "billing/": 20.0}}
+    bug = BugInput(description="billing issue", modules=["auth/"])
+    result = rank_developers(bug, emap)
+    assert result[0].matched_modules == ["auth/", "billing/"]
+
+
+# Ties broken by developer_email ascending.
+def test_tie_break_by_email():
+    emap = {"bob@x.com": {"auth/": 30.0}, "alice@x.com": {"auth/": 30.0}}
+    result = rank_developers(BugInput(modules=["auth/"]), emap)
     assert [c.developer_email for c in result] == ["alice@x.com", "bob@x.com"]
 
 
-# Rule 6: a developer with zero relevant expertise is excluded.
-def test_irrelevant_developer_excluded():
-    emap = {**EMAP, "dave@x.com": {"payments/": 100.0}}
-    result = rank_developers(BugInput(module="auth/"), emap)
+# A developer with zero relevant expertise is excluded.
+def test_irrelevant_excluded():
+    emap = {"alice@x.com": {"auth/": 50.0}, "dave@x.com": {"unrelated/": 99.0}}
+    result = rank_developers(BugInput(modules=["auth/"]), emap)
     assert "dave@x.com" not in {c.developer_email for c in result}
-
-
-# Keyword-only matching (no module selected) still works.
-def test_keyword_only_match():
-    result = rank_developers(
-        BugInput(description="fix the billing checkout"), EMAP
-    )
-    assert [c.developer_email for c in result] == ["bob@x.com"]
-    assert result[0].matched_modules == ["billing/"]
 
 
 # Candidate shape.
 def test_candidate_shape():
-    result = rank_developers(BugInput(module="auth/"), EMAP)
-    c = result[0]
+    emap = {"alice@x.com": {"auth/": 50.0}}
+    c = rank_developers(BugInput(modules=["auth/"]), emap)[0]
     assert isinstance(c, Candidate)
-    assert isinstance(c.developer_email, str)
     assert isinstance(c.score, float)
     assert isinstance(c.matched_modules, list)
 
 
-# Edge: empty expertise_map -> [].
-def test_empty_expertise_map():
-    assert rank_developers(BugInput(module="auth/"), {}) == []
-
-
-# Edge: nothing matches the bug's module/keywords -> [].
-def test_no_match_returns_empty():
-    result = rank_developers(
-        BugInput(description="quantum flux", module="nonexistent/"), EMAP
-    )
-    assert result == []
-
-
-# Edge: empty description and no module -> [] (nothing to match on).
-def test_no_module_no_description():
-    assert rank_developers(BugInput(), EMAP) == []
-
-
-# Multi-segment (deep) modules keyword-match on any path segment.
-def test_deep_module_keyword_match():
-    emap = {"dev@x.com": {"Engine/Physics/": 40.0}}
-    # "physics" is a segment of the module path, not the whole name.
-    result = rank_developers(BugInput(description="physics glitch"), emap)
-    assert [c.developer_email for c in result] == ["dev@x.com"]
-    assert result[0].matched_modules == ["Engine/Physics/"]
+# Empty description and no modules -> [] (nothing to match on).
+def test_nothing_to_match():
+    emap = {"alice@x.com": {"auth/": 50.0}}
+    assert rank_developers(BugInput(modules=[]), emap) == []
