@@ -211,3 +211,13 @@ def test_since_date_excludes_all(make_repo):
     ])
     records = analyze_repository(repo_path, since_date=FIXED_NOW + timedelta(days=1))
     assert records == []
+
+
+# The commit message is captured on each record.
+def test_records_include_commit_message(make_repo):
+    repo_path = make_repo([
+        SeededCommit("Alice", "alice@x.com", days_ago=0,
+                     files={"auth/x.py": "1\n"}, message="Fix billing rounding"),
+    ])
+    records = analyze_repository(repo_path)
+    assert records[0].message == "Fix billing rounding"

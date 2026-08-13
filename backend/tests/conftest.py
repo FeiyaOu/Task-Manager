@@ -38,6 +38,7 @@ class SeededCommit:
     author_email: str
     days_ago: int
     files: dict[str, str]  # relative path -> file content
+    message: str | None = None
 
 
 def _commit_datetime(days_ago: int) -> str:
@@ -78,7 +79,8 @@ def make_repo(tmp_path):
             actor = Actor(spec.author_name, spec.author_email)
             date = _commit_datetime(spec.days_ago)
             repo.index.commit(
-                f"commit by {spec.author_name} ({spec.days_ago}d ago)",
+                spec.message
+                or f"commit by {spec.author_name} ({spec.days_ago}d ago)",
                 author=actor,
                 committer=actor,
                 author_date=date,

@@ -94,3 +94,13 @@ def test_module_depth_threads_through(db_session, make_repo):
     ingest_repo(db_session, repo, now=FIXED_NOW, module_depth=2)
     modules = {e.module_path for e in db_session.exec(select(Expertise)).all()}
     assert modules == {"Engine/Physics/", "Engine/Audio/"}
+
+
+def test_ingest_stores_commit_message(db_session, make_repo):
+    repo = make_repo([
+        SeededCommit("Alice", "alice@x.com", days_ago=0,
+                     files={"auth/x.py": "1\n"}, message="Fix billing rounding"),
+    ])
+    ingest_repo(db_session, repo, now=FIXED_NOW)
+    commit = db_session.exec(select(Commit)).first()
+    assert commit.message == "Fix billing rounding"
