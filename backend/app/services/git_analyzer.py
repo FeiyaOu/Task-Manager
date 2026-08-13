@@ -32,6 +32,7 @@ class CommitFileRecord:
     file_path: str
     lines_added: int
     lines_deleted: int
+    message: str = ""
 
 
 def head_commit(repo_path: str) -> str | None:
@@ -93,6 +94,7 @@ def analyze_repository(
     records: list[CommitFileRecord] = []
     for commit in commits:
         committed_at = commit.committed_datetime.astimezone(timezone.utc)
+        message = str(commit.message).strip()
         for file_path, stat in commit.stats.files.items():
             records.append(
                 CommitFileRecord(
@@ -103,6 +105,7 @@ def analyze_repository(
                     file_path=file_path,
                     lines_added=int(stat.get("insertions", 0)),
                     lines_deleted=int(stat.get("deletions", 0)),
+                    message=message,
                 )
             )
     return records

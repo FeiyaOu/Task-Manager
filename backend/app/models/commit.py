@@ -16,3 +16,4 @@ class Commit(SQLModel, table=True):
     lines_added: int
     lines_deleted: int
     committed_at: datetime
+    message: str = ""

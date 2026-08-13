@@ -49,6 +49,7 @@ def ingest_repo(
                 lines_added=r.lines_added,
                 lines_deleted=r.lines_deleted,
                 committed_at=r.committed_at,
+                message=r.message,
             )
         )
     session.commit()
