@@ -19,7 +19,7 @@ engine = make_engine()
 
 def create_db_and_tables(engine=engine) -> None:
     # Import models so their tables register on SQLModel.metadata before create_all.
-    from app.models import bug, task  # noqa: F401
+    from app.models import bug, commit, config_state, expertise, task  # noqa: F401
 
     SQLModel.metadata.create_all(engine)
 

@@ -99,3 +99,16 @@ def non_git_dir(tmp_path):
     plain = tmp_path / "plain"
     plain.mkdir()
     return str(plain)
+
+
+@pytest.fixture
+def db_session():
+    """An in-memory SQLite session with all app tables created."""
+    from sqlmodel import Session, create_engine
+
+    from app.database import create_db_and_tables
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False})
+    create_db_and_tables(engine)
+    with Session(engine) as session:
+        yield session
