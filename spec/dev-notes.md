@@ -133,3 +133,26 @@ Durable record of non-obvious problems hit during feature 05, so they aren't re-
 - **Symptom:** scoring math on DB-read `committed_at` would mix naive/aware datetimes.
 - **Fix:** `repo_ingest._as_aware()` re-attaches UTC to naive timestamps read back from SQLite
   before handing them to `compute_expertise`.
+
+## Decision: `watcher.py` dropped as unnecessary
+
+The original build order (`project-structure.md` step 8) planned a `watchdog` observer on `.git/`
+to auto-refresh so the system "stays current." **We are not building it.**
+
+**Why it's now redundant:** "stays current" is already satisfied and demonstrable without it —
+1. the `RepoSetup` panel has a one-click **Re-analyze** (returns `new_commits`, so change pickup is
+   visible live);
+2. **incremental refresh** via `since_commit` + the DB idempotency dedup makes re-analysis cheap;
+3. the `days` window scopes re-scans.
+
+**Why we actively skip it:** a background `watchdog` thread means threading against SQLite,
+concurrent cache reloads, `.git` write debouncing, and app-lifecycle management — a lot of fragile
+surface area for what amounts to saving one click on a local tool. Explicit refresh is also better
+UX than a surprise background job.
+
+**If zero-click freshness is ever wanted** (no new dependency, no thread): React Query
+`refetchOnWindowFocus` / `refetchInterval` on `repoStatus` + `modules`, or a small "auto re-analyze
+every N min" toggle. Preferred over a filesystem watcher.
+
+Interview framing: if asked about "stays current," explain that in-app analyze/re-analyze +
+incremental refresh meets the requirement with far less risk than a watcher.
