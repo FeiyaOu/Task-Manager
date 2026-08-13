@@ -1,4 +1,10 @@
-import type { AssignmentResult, BugSubmit, TaskRead } from './types'
+import type {
+  AssignmentResult,
+  BugSubmit,
+  RefreshResult,
+  RepoStatus,
+  TaskRead,
+} from './types'
 
 // One thin fetch wrapper per backend endpoint. Relative URLs are proxied to the
 // FastAPI backend in dev (see vite.config.ts).
@@ -26,10 +32,9 @@ export const submitBug = (bug: BugSubmit) =>
     method: 'POST',
     body: JSON.stringify(bug),
   })
-export const getRepoStatus = () =>
-  request<Record<string, unknown>>('/api/repo/status')
+export const getRepoStatus = () => request<RepoStatus>('/api/repo/status')
 export const refreshRepo = (days?: number) =>
-  request<{ new_commits: number; modules: number }>(
+  request<RefreshResult>(
     `/api/repo/refresh${days ? `?days=${days}` : ''}`,
     { method: 'POST' },
   )

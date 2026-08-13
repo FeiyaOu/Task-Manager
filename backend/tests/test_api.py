@@ -173,3 +173,12 @@ def test_module_depth_config(api, make_repo, monkeypatch):
     get_settings.cache_clear()
     api.post("/api/repo/refresh")
     assert api.get("/api/modules").json() == ["Engine/Audio/", "Engine/Physics/"]
+
+
+# Refreshing with an invalid REPO_PATH returns a friendly 400, not a 500.
+def test_refresh_invalid_repo_returns_400(api, non_git_dir, monkeypatch):
+    monkeypatch.setenv("REPO_PATH", non_git_dir)
+    get_settings.cache_clear()
+    r = api.post("/api/repo/refresh")
+    assert r.status_code == 400
+    assert "git" in r.json()["detail"].lower()

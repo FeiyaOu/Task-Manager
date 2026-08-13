@@ -5,11 +5,12 @@ import type { BugSubmit } from '../api/types'
 interface Props {
   onSubmit: (bug: BugSubmit) => void
   isSubmitting: boolean
+  ready: boolean
 }
 
 const SEVERITIES = ['low', 'medium', 'high', 'critical']
 
-export default function BugForm({ onSubmit, isSubmitting }: Props) {
+export default function BugForm({ onSubmit, isSubmitting, ready }: Props) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [module, setModule] = useState('')
@@ -62,11 +63,16 @@ export default function BugForm({ onSubmit, isSubmitting }: Props) {
 
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || !ready}
         className="rounded bg-slate-900 px-4 py-2 text-white hover:bg-slate-700 disabled:opacity-50"
       >
         {isSubmitting ? 'Assigning…' : 'Submit bug'}
       </button>
+      {!ready && (
+        <p className="text-xs text-amber-700">
+          Analyze the repository above to enable submission.
+        </p>
+      )}
     </form>
   )
 }
