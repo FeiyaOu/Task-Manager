@@ -92,3 +92,36 @@ def test_candidate_shape():
 def test_nothing_to_match():
     emap = {"alice@x.com": {"auth/": 50.0}}
     assert rank_developers(BugInput(modules=[]), emap) == []
+
+
+# module_relevance (TF-IDF) weights expertise by graded relevance.
+def test_relevance_weighting():
+    emap = {"alice@x.com": {"payments/": 100.0}}
+    result = rank_developers(
+        BugInput(description="billing", modules=[]),
+        emap,
+        module_relevance={"payments/": 0.5},
+    )
+    assert result[0].score == pytest.approx(50.0)  # 100 * 0.5
+
+
+# A selected module always gets full weight, overriding relevance.
+def test_selected_overrides_relevance():
+    emap = {"alice@x.com": {"auth/": 40.0}}
+    result = rank_developers(
+        BugInput(modules=["auth/"]),
+        emap,
+        module_relevance={"auth/": 0.2},
+    )
+    assert result[0].score == pytest.approx(40.0)  # selected -> weight 1.0
+
+
+# With relevance provided, a module of zero relevance does not match.
+def test_zero_relevance_excluded():
+    emap = {"alice@x.com": {"billing/": 90.0}}
+    result = rank_developers(
+        BugInput(description="unrelated", modules=[]),
+        emap,
+        module_relevance={},
+    )
+    assert result == []

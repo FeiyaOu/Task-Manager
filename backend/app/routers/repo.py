@@ -47,6 +47,7 @@ def refresh_repo(
             ),
         ) from exc
     request.app.state.expertise_cache.load(session)
+    request.app.state.module_index.build(session, module_depth=settings.module_depth)
     return result
 
 

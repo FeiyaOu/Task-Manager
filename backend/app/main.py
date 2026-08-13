@@ -15,6 +15,7 @@ import app.database as database
 from app.config import get_settings
 from app.routers import bugs, expertise, modules, repo, tasks
 from app.services.expertise_cache import ExpertiseCache
+from app.services.module_index import ModuleIndex
 
 
 def create_app() -> FastAPI:
@@ -24,13 +25,17 @@ def create_app() -> FastAPI:
     async def lifespan(app: FastAPI):
         database.create_db_and_tables()
         cache = ExpertiseCache()
+        index = ModuleIndex()
         with Session(database.engine) as session:
             cache.load(session)
+            index.build(session, module_depth=settings.module_depth)
         app.state.expertise_cache = cache
+        app.state.module_index = index
         yield
 
     app = FastAPI(title="Task Manager", lifespan=lifespan)
     app.state.expertise_cache = ExpertiseCache()
+    app.state.module_index = ModuleIndex()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,

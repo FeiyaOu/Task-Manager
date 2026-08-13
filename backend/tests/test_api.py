@@ -214,3 +214,24 @@ def test_status_stale_after_new_commit(api, make_repo, monkeypatch):
     after = api.get("/api/repo/status").json()
     assert after["is_stale"] is True
     assert after["head_commit"] != after["last_analyzed_commit"]
+
+
+# Commit-message enrichment: "billing" text finds the payments/ developer.
+def test_bugs_uses_commit_message_relevance(api, make_repo, monkeypatch):
+    repo = make_repo([
+        SeededCommit("Alice", "alice@x.com", days_ago=0,
+                     files={"payments/charge.py": "1\n"},
+                     message="fix billing invoice calculation"),
+        SeededCommit("Bob", "bob@x.com", days_ago=0,
+                     files={"engine/render.py": "1\n"},
+                     message="optimize rendering pipeline"),
+    ])
+    monkeypatch.setenv("REPO_PATH", repo)
+    get_settings.cache_clear()
+    api.post("/api/repo/refresh")
+
+    body = api.post(
+        "/api/bugs",
+        json={"title": "billing", "description": "billing problem", "modules": []},
+    ).json()
+    assert body["assigned_email"] == "alice@x.com"

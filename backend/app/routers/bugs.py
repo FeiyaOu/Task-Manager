@@ -19,7 +19,10 @@ def submit_bug(
     session: Session = Depends(get_session),
 ) -> AssignmentResult:
     cache = request.app.state.expertise_cache
+    index = request.app.state.module_index
     settings = get_settings()
+    text = f"{bug.title} {bug.description}"
+    relevance = index.relevance(text) if index.is_ready else None
     return assign_bug(
         bug,
         session,
@@ -27,4 +30,5 @@ def submit_bug(
         threshold=settings.assign_threshold,
         broaden_threshold=settings.broaden_threshold,
         text_threshold=settings.text_threshold,
+        module_relevance=relevance,
     )
