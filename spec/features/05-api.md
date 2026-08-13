@@ -41,7 +41,9 @@ Expose the v1 HTTP surface with FastAPI. Thin routers that delegate to services.
 - **200:** `{ new_commits: int, modules: int }`.
 
 ### GET /api/repo/status
-- **200:** `{ repo_path, last_analyzed_commit, developer_count, module_count }`.
+- **200:** `{ repo_path, last_analyzed_commit, head_commit, is_stale, developer_count, module_count }`.
+  `is_stale` is true when the repo has advanced past `last_analyzed_commit` (new commits since the
+  last analysis) — the frontend shows a soft "re-analyze" warning; it does not block submission.
 
 ## Cross-cutting rules
 7. CORS allows the local frontend origin.

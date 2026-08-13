@@ -19,7 +19,35 @@ export default function RepoSetup() {
   return (
     <div className="rounded-lg border bg-white p-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Repository analysis</h2>
+        <div className="flex items-center gap-1.5">
+          <h2 className="text-sm font-semibold">Repository analysis</h2>
+          <span className="group relative inline-flex">
+            <button
+              type="button"
+              aria-label="What does repository analysis do?"
+              className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-400 text-[10px] font-bold leading-none text-slate-500 hover:bg-slate-100"
+            >
+              i
+            </button>
+            <div className="pointer-events-none absolute left-1/2 top-6 z-10 hidden w-72 -translate-x-1/2 rounded-lg border bg-white p-3 text-xs font-normal text-slate-600 shadow-lg group-hover:block">
+              <p className="mb-2">
+                Reads the target repository's git history and builds the expertise
+                map — who has worked on which modules. Submitting bugs is enabled
+                once this is built.
+              </p>
+              <p className="mb-1">
+                <span className="font-semibold text-slate-800">All history:</span>{' '}
+                analyzes every commit since the last analysis (incremental — never
+                misses commits).
+              </p>
+              <p>
+                <span className="font-semibold text-slate-800">Last N days:</span>{' '}
+                analyzes only commits from the last N days (a bounded window — can
+                skip older commits that were never analyzed).
+              </p>
+            </div>
+          </span>
+        </div>
         {isLoading ? (
           <span className="text-xs text-slate-500">Checking…</span>
         ) : analyzed ? (
@@ -37,6 +65,13 @@ export default function RepoSetup() {
       {!analyzed && !isLoading && (
         <p className="mt-1 text-xs text-slate-500">
           Analyze the repository to build the expertise map before submitting bugs.
+        </p>
+      )}
+
+      {analyzed && status?.is_stale && (
+        <p className="mt-2 rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          The repository has new commits since the last analysis. Re-analyze to keep
+          assignments current.
         </p>
       )}
 

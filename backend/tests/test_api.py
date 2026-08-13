@@ -182,3 +182,35 @@ def test_refresh_invalid_repo_returns_400(api, non_git_dir, monkeypatch):
     r = api.post("/api/repo/refresh")
     assert r.status_code == 400
     assert "git" in r.json()["detail"].lower()
+
+
+# GET /api/repo/status flags staleness when the repo has commits past the last scan.
+def test_status_stale_after_new_commit(api, make_repo, monkeypatch):
+    from pathlib import Path
+
+    from git import Actor, Repo
+
+    repo = make_repo([
+        SeededCommit("Alice", "alice@x.com", days_ago=2,
+                     files={"auth/a.py": "1\n"}),
+        SeededCommit("Bob", "bob@x.com", days_ago=1,
+                     files={"billing/b.py": "1\n"}),
+    ])
+    monkeypatch.setenv("REPO_PATH", repo)
+    get_settings.cache_clear()
+    api.post("/api/repo/refresh")
+
+    before = api.get("/api/repo/status").json()
+    assert before["is_stale"] is False
+    assert before["head_commit"] == before["last_analyzed_commit"]
+
+    # A new, un-analyzed commit makes the repo stale.
+    r = Repo(repo)
+    (Path(repo) / "new.py").write_text("x\n")
+    r.index.add(["new.py"])
+    actor = Actor("Carla", "carla@x.com")
+    r.index.commit("new work", author=actor, committer=actor)
+
+    after = api.get("/api/repo/status").json()
+    assert after["is_stale"] is True
+    assert after["head_commit"] != after["last_analyzed_commit"]

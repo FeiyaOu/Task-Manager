@@ -34,6 +34,15 @@ class CommitFileRecord:
     lines_deleted: int
 
 
+def head_commit(repo_path: str) -> str | None:
+    """Return the repo's current HEAD commit hash, or None if unavailable."""
+    try:
+        repo = Repo(repo_path)
+    except (InvalidGitRepositoryError, NoSuchPathError):
+        return None
+    return repo.head.commit.hexsha if repo.head.is_valid() else None
+
+
 def analyze_repository(
     repo_path: str,
     since_commit: str | None = None,

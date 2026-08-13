@@ -40,6 +40,8 @@ export interface TaskRead {
 export interface RepoStatus {
   repo_path: string
   last_analyzed_commit: string | null
+  head_commit: string | null
+  is_stale: boolean
   developer_count: number
   module_count: number
 }
