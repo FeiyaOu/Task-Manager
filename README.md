@@ -117,33 +117,30 @@ cp .env.example .env
 
 ## Running
 
+The backend and the frontend run as two processes, so use **two terminals**.
+
 ```bash
-# From the project root, one command (creates the venv, installs deps,
-# builds the frontend, then starts the API on http://0.0.0.0:8000):
+# Terminal 1 — backend API on http://0.0.0.0:8000
+# (creates the venv, installs deps, then starts uvicorn)
 ./run.sh
 ```
 
-`run.sh` requires a `.env` file and exits if one is missing. Once it's up, open the app, submit a
-bug, and watch it get assigned. Interactive API docs are at `http://localhost:8000/docs`.
+```bash
+# Terminal 2 — frontend UI on http://localhost:5173
+# (Vite dev server; proxies /api → localhost:8000)
+cd frontend
+npm install
+npm run dev
+```
+
+`run.sh` requires a `.env` file and exits if one is missing. It serves the **API only** — open the
+UI at **http://localhost:5173**, submit a bug, and watch it get assigned. Interactive API docs are
+at `http://localhost:8000/docs`.
 
 To populate the expertise map, analyze your repo via the **Repo Setup** page in the UI or:
 
 ```bash
 curl -X POST http://localhost:8000/api/repo/refresh
-```
-
-### Development (run the pieces separately)
-
-```bash
-# Backend (hot reload)
-cd backend
-source .venv/bin/activate
-uvicorn app.main:app --app-dir . --host 0.0.0.0 --port 8000 --reload
-
-# Frontend (Vite dev server, proxies /api → localhost:8000)
-cd frontend
-npm install
-npm run dev
 ```
 
 > **Schema-change gotcha:** the SQLite file resolves relative to the working directory, so `run.sh`
@@ -163,6 +160,9 @@ npm run dev
 | `GET /api/repo/status` | `repo_path`, `last_analyzed_commit`, `head_commit`, `is_stale`, `developer_count`, `module_count` |
 
 ## Testing
+
+`run.sh` creates the virtualenv at `backend/.venv`, so run it once first (or `python -m venv
+backend/.venv && pip install -r backend/requirements.txt`). Then:
 
 ```bash
 cd backend
