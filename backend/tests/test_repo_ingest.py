@@ -5,6 +5,8 @@ recompute expertise -> update config_state. Reuses the temp-git-repo fixture.
 """
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
 from sqlmodel import select
 
@@ -66,3 +68,18 @@ def test_empty_repo_ingest(db_session, empty_repo):
     result = ingest_repo(db_session, empty_repo, now=FIXED_NOW)
     assert result["new_commits"] == 0
     assert result["modules"] == 0
+
+
+def test_since_date_limits_ingested_commits(db_session, make_repo):
+    repo = make_repo([
+        SeededCommit("Alice", "alice@x.com", days_ago=10,
+                     files={"old/mod.py": "1\n"}),
+        SeededCommit("Bob", "bob@x.com", days_ago=1,
+                     files={"recent/mod.py": "1\n"}),
+    ])
+    result = ingest_repo(
+        db_session, repo, now=FIXED_NOW, since_date=FIXED_NOW - timedelta(days=3)
+    )
+    assert result["new_commits"] == 1
+    modules = {e.module_path for e in db_session.exec(select(Expertise)).all()}
+    assert modules == {"recent/"}

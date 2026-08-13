@@ -6,7 +6,7 @@ the TDD red step.
 """
 from __future__ import annotations
 
-from datetime import timezone
+from datetime import timedelta, timezone
 
 import pytest
 from git import Actor, Repo
@@ -188,3 +188,26 @@ def test_delete_only_commit(tmp_path):
     assert del_records[0].file_path == "gone.py"
     assert del_records[0].lines_deleted == 2
     assert del_records[0].lines_added == 0
+
+
+# since_date: only commits at/after the cutoff are returned.
+def test_since_date_keeps_only_recent(make_repo):
+    repo_path = make_repo([
+        SeededCommit("Alice", "alice@x.com", days_ago=10,
+                     files={"old.py": "1\n"}),
+        SeededCommit("Bob", "bob@x.com", days_ago=1,
+                     files={"recent.py": "1\n"}),
+    ])
+    cutoff = FIXED_NOW - timedelta(days=3)
+    records = analyze_repository(repo_path, since_date=cutoff)
+    assert {r.file_path for r in records} == {"recent.py"}
+
+
+# since_date newer than every commit -> [].
+def test_since_date_excludes_all(make_repo):
+    repo_path = make_repo([
+        SeededCommit("Alice", "alice@x.com", days_ago=10,
+                     files={"old.py": "1\n"}),
+    ])
+    records = analyze_repository(repo_path, since_date=FIXED_NOW + timedelta(days=1))
+    assert records == []

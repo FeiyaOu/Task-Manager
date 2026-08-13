@@ -106,3 +106,18 @@ def test_repo_status(api, make_repo, monkeypatch):
     assert body["last_analyzed_commit"] is not None
     assert body["developer_count"] == 2
     assert body["module_count"] == 2
+
+
+# POST /api/repo/refresh?days=N limits analysis to the recent window.
+def test_refresh_days_window(api, make_repo, monkeypatch):
+    repo = make_repo([
+        SeededCommit("Alice", "alice@x.com", days_ago=40,
+                     files={"old/mod.py": "1\n"}),
+        SeededCommit("Bob", "bob@x.com", days_ago=1,
+                     files={"recent/mod.py": "1\n"}),
+    ])
+    monkeypatch.setenv("REPO_PATH", repo)
+    get_settings.cache_clear()
+    result = api.post("/api/repo/refresh", params={"days": 7}).json()
+    assert result["new_commits"] == 1
+    assert api.get("/api/modules").json() == ["recent/"]

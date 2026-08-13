@@ -1,7 +1,7 @@
 """Repo endpoints: POST /api/repo/refresh and GET /api/repo/status."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Request
 from sqlmodel import Session, select
@@ -17,17 +17,24 @@ router = APIRouter(prefix="/api/repo", tags=["repo"])
 
 @router.post("/refresh")
 def refresh_repo(
-    request: Request, session: Session = Depends(get_session)
+    request: Request,
+    days: int | None = None,
+    session: Session = Depends(get_session),
 ) -> dict[str, int]:
     settings = get_settings()
+    now = datetime.now(timezone.utc)
+    # A date window is a bounded scan (ignore the incremental commit cursor);
+    # otherwise refresh incrementally from the last analyzed commit.
+    since_date = now - timedelta(days=days) if days is not None else None
     state = session.exec(select(ConfigState)).first()
-    since = state.last_analyzed_commit_hash if state else None
+    since_commit = None if since_date else (state.last_analyzed_commit_hash if state else None)
     result = ingest_repo(
         session,
         settings.repo_path,
-        now=datetime.now(timezone.utc),
+        now=now,
         lambda_decay=settings.decay_lambda,
-        since_commit=since,
+        since_commit=since_commit,
+        since_date=since_date,
     )
     request.app.state.expertise_cache.load(session)
     return result

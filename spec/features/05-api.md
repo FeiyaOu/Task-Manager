@@ -29,6 +29,8 @@ Expose the v1 HTTP surface with FastAPI. Thin routers that delegate to services.
 
 ### POST /api/repo/refresh
 - **Behavior:** re-scan git since last analyzed commit, update expertise + cache.
+- **Optional query param `days: int`:** limit the scan to commits from the last N days
+  (a bounded window scan; ignores the incremental commit cursor for that call).
 - **200:** `{ new_commits: int, modules: int }`.
 
 ### GET /api/repo/status

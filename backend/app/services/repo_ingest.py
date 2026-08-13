@@ -33,8 +33,9 @@ def ingest_repo(
     now: datetime,
     lambda_decay: float = DEFAULT_LAMBDA,
     since_commit: str | None = None,
+    since_date: datetime | None = None,
 ) -> dict[str, int]:
-    records = analyze_repository(repo_path, since_commit)
+    records = analyze_repository(repo_path, since_commit, since_date)
     # Idempotency guard: never insert a (commit, file) pair already persisted.
     existing = set(session.exec(select(Commit.commit_hash)).all())
     new_records = [r for r in records if r.commit_hash not in existing]
