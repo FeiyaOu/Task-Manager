@@ -1,15 +1,21 @@
-import { useState } from 'react'
-import ModuleDropdown from './ModuleDropdown.jsx'
+import { useState, type FormEvent } from 'react'
+import ModuleDropdown from './ModuleDropdown'
+import type { BugSubmit } from '../api/types'
+
+interface Props {
+  onSubmit: (bug: BugSubmit) => void
+  isSubmitting: boolean
+}
 
 const SEVERITIES = ['low', 'medium', 'high', 'critical']
 
-export default function BugForm({ onSubmit, isSubmitting }) {
+export default function BugForm({ onSubmit, isSubmitting }: Props) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [module, setModule] = useState('')
   const [severity, setSeverity] = useState('medium')
 
-  function handleSubmit(e) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault()
     onSubmit({ title, description, module: module || null, severity })
   }

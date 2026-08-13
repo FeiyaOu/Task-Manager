@@ -1,6 +1,6 @@
 import { Link, Route, Routes } from 'react-router-dom'
-import BugSubmitPage from './pages/BugSubmitPage.jsx'
-import TaskListPage from './pages/TaskListPage.jsx'
+import BugSubmitPage from './pages/BugSubmitPage'
+import TaskListPage from './pages/TaskListPage'
 
 export default function App() {
   return (

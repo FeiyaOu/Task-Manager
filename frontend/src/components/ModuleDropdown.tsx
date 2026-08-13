@@ -1,6 +1,11 @@
 import { useModules } from '../hooks/useModules'
 
-export default function ModuleDropdown({ value, onChange }) {
+interface Props {
+  value: string
+  onChange: (value: string) => void
+}
+
+export default function ModuleDropdown({ value, onChange }: Props) {
   const { data: modules, isLoading, isError } = useModules()
 
   return (

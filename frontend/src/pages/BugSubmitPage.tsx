@@ -1,6 +1,6 @@
 import { useSubmitBug } from '../hooks/useSubmitBug'
-import BugForm from '../components/BugForm.jsx'
-import SuccessCard from '../components/SuccessCard.jsx'
+import BugForm from '../components/BugForm'
+import SuccessCard from '../components/SuccessCard'
 
 export default function BugSubmitPage() {
   const mutation = useSubmitBug()

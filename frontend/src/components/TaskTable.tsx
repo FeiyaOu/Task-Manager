@@ -1,11 +1,17 @@
-const STATUS_STYLES = {
+import type { TaskRead } from '../api/types'
+
+const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-blue-100 text-blue-800',
   accepted: 'bg-green-100 text-green-800',
   declined: 'bg-red-100 text-red-800',
   unassigned: 'bg-amber-100 text-amber-800',
 }
 
-export default function TaskTable({ tasks }) {
+interface Props {
+  tasks: TaskRead[]
+}
+
+export default function TaskTable({ tasks }: Props) {
   if (!tasks.length) {
     return (
       <p className="text-sm text-slate-500">

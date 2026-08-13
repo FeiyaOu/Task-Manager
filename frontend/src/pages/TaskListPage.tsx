@@ -1,5 +1,5 @@
 import { useTasks } from '../hooks/useTasks'
-import TaskTable from '../components/TaskTable.jsx'
+import TaskTable from '../components/TaskTable'
 
 export default function TaskListPage() {
   const { data: tasks, isLoading, isError } = useTasks()

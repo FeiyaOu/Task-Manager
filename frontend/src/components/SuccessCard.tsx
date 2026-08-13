@@ -1,6 +1,12 @@
 import { Link } from 'react-router-dom'
+import type { AssignmentResult } from '../api/types'
 
-export default function SuccessCard({ result, onReset }) {
+interface Props {
+  result: AssignmentResult
+  onReset: () => void
+}
+
+export default function SuccessCard({ result, onReset }: Props) {
   const assigned = result.status !== 'unassigned' && result.assigned_email
 
   return (
@@ -25,7 +31,7 @@ export default function SuccessCard({ result, onReset }) {
         </>
       )}
 
-      {result.candidates?.length > 1 && (
+      {result.candidates.length > 1 && (
         <div className="mt-4">
           <h3 className="text-sm font-medium text-slate-700">Other candidates</h3>
           <ul className="mt-1 space-y-1 text-sm text-slate-600">
