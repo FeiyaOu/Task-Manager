@@ -13,7 +13,7 @@ from sqlmodel import Session
 from app.models.bug import Bug
 from app.models.enums import TaskStatus
 from app.models.task import Task
-from app.schemas.bug import AssignmentResult, BugSubmit
+from app.schemas.bug import AssignmentResult, BugSubmit, CandidateRead
 from app.services.matcher import BugInput, rank_developers
 
 DEFAULT_THRESHOLD = 0.0
@@ -74,4 +74,12 @@ def assign_bug(
         score=score,
         matched_modules=matched_modules,
         status=status,
+        candidates=[
+            CandidateRead(
+                developer_email=c.developer_email,
+                score=c.score,
+                matched_modules=c.matched_modules,
+            )
+            for c in candidates
+        ],
     )

@@ -13,6 +13,12 @@ class BugSubmit(BaseModel):
     severity: str | None = None
 
 
+class CandidateRead(BaseModel):
+    developer_email: str
+    score: float
+    matched_modules: list[str]
+
+
 class AssignmentResult(BaseModel):
     bug_id: int
     task_id: int
@@ -20,3 +26,4 @@ class AssignmentResult(BaseModel):
     score: float | None
     matched_modules: list[str]
     status: TaskStatus
+    candidates: list[CandidateRead] = []

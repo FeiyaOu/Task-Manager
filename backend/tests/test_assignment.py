@@ -111,3 +111,21 @@ def test_single_bug_and_task_rows(session):
     assign_bug(_bug(), session, EMAP)
     assert len(session.exec(select(Bug)).all()) == 1
     assert len(session.exec(select(Task)).all()) == 1
+
+
+# The full ranked candidate list is exposed on the result (not just the winner).
+def test_result_includes_ranked_candidates(session):
+    emap = {"alice@x.com": {"auth/": 50.0}, "carla@x.com": {"auth/": 20.0}}
+    result = assign_bug(_bug(), session, emap)
+    assert [c.developer_email for c in result.candidates] == [
+        "alice@x.com",
+        "carla@x.com",
+    ]
+    assert result.candidates[0].score == pytest.approx(50.0)
+    assert result.candidates[0].matched_modules == ["auth/"]
+
+
+# No match -> empty candidate list.
+def test_no_candidates_when_unassigned(session):
+    result = assign_bug(_bug(), session, {})
+    assert result.candidates == []

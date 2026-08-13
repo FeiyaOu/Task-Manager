@@ -121,3 +121,31 @@ def test_refresh_days_window(api, make_repo, monkeypatch):
     result = api.post("/api/repo/refresh", params={"days": 7}).json()
     assert result["new_commits"] == 1
     assert api.get("/api/modules").json() == ["recent/"]
+
+
+# GET /api/expertise exposes the expertise map rows.
+def test_expertise_lists_rows(api, make_repo, monkeypatch):
+    _refresh(api, monkeypatch, _seed_repo(make_repo))
+    rows = api.get("/api/expertise").json()
+    assert all(
+        {"developer_email", "module_path", "score", "commit_count"} <= set(r)
+        for r in rows
+    )
+    assert {r["developer_email"] for r in rows} == {"alice@x.com", "bob@x.com"}
+
+
+# GET /api/expertise?developer= filters to one developer.
+def test_expertise_filter_by_developer(api, make_repo, monkeypatch):
+    _refresh(api, monkeypatch, _seed_repo(make_repo))
+    rows = api.get("/api/expertise", params={"developer": "alice@x.com"}).json()
+    assert {r["developer_email"] for r in rows} == {"alice@x.com"}
+
+
+# POST /api/bugs now returns the ranked candidate list.
+def test_bugs_returns_candidates(api, make_repo, monkeypatch):
+    _refresh(api, monkeypatch, _seed_repo(make_repo))
+    body = api.post(
+        "/api/bugs",
+        json={"title": "login", "description": "auth login fails", "module": "auth/"},
+    ).json()
+    assert body["candidates"][0]["developer_email"] == "alice@x.com"
