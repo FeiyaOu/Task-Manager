@@ -156,3 +156,34 @@ every N min" toggle. Preferred over a filesystem watcher.
 
 Interview framing: if asked about "stays current," explain that in-app analyze/re-analyze +
 incremental refresh meets the requirement with far less risk than a watcher.
+
+## Refresh semantics: "All" (incremental) vs. day-window (absolute) — and the gap risk
+
+`POST /api/repo/refresh` has two distinct modes, driven by whether `days` is passed:
+
+```python
+since_date   = now - timedelta(days=days) if days is not None else None
+since_commit = None if since_date else (state.last_analyzed_commit_hash if state else None)
+```
+
+| Mode | Range analyzed | Uses `last_analyzed_commit` cursor? | Gap risk |
+|---|---|---|---|
+| **All** (`days` omitted) | `last_tip..HEAD` (incremental) | ✅ yes | ❌ none |
+| **Window** (`days=N`) | absolute `[now−N, now]` | ❌ no (cursor is bypassed) | ✅ yes |
+
+**Counterintuitive but important:** "All" is the *gap-free* option — it walks from the last analyzed
+commit to HEAD, so it never skips anything. A **day window is an absolute snapshot** that ignores
+the cursor, so it can leave a permanent hole.
+
+**Worked example.** Last scan Monday with `days=7` → sets `last_analyzed_commit` to Monday's tip.
+Next scan Friday with `days=1` → window is `[Thursday, Friday]`, `since_commit` bypassed. Tuesday–
+Wednesday commits are **never ingested** (they were outside Monday's earlier window too) → a gap.
+Choosing **All** on Friday instead would fetch `Monday_tip..HEAD` = Tue→Fri, filling the gap.
+
+Non-destructive: a window scan **adds** its commits (dedup-guarded) to whatever is already stored
+and recomputes expertise over the union; it just won't *back-fill* ranges outside its window. Only
+**All** (or a wide-enough window) covers the gap. A true clean rescan = delete `taskmanager.db`.
+
+**Possible UX follow-ups (not built):** relabel as "All (since last scan)" vs "Window (last N days)";
+make All a genuine full rescan (ignore `since_commit`); or warn when a chosen window starts after the
+last-analyzed commit's date (potential gap).
