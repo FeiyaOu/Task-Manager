@@ -101,3 +101,12 @@ def test_no_match_returns_empty():
 # Edge: empty description and no module -> [] (nothing to match on).
 def test_no_module_no_description():
     assert rank_developers(BugInput(), EMAP) == []
+
+
+# Multi-segment (deep) modules keyword-match on any path segment.
+def test_deep_module_keyword_match():
+    emap = {"dev@x.com": {"Engine/Physics/": 40.0}}
+    # "physics" is a segment of the module path, not the whole name.
+    result = rank_developers(BugInput(description="physics glitch"), emap)
+    assert [c.developer_email for c in result] == ["dev@x.com"]
+    assert result[0].matched_modules == ["Engine/Physics/"]

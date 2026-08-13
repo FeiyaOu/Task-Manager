@@ -23,19 +23,23 @@ class ExpertiseCell:
     commit_count: int
 
 
-def module_of(file_path: str) -> str:
-    """Normalize a file path to its module = top-level directory + "/".
+def module_of(file_path: str, depth: int = 1) -> str:
+    """Normalize a file path to a module = its first ``depth`` directories + "/".
 
-    A file at the repository root (no directory) maps to ``"./"``.
+    A file at the repository root (no directory) maps to ``"./"``. When the path
+    has fewer directories than ``depth``, all available directories are used.
     """
-    head, sep, _ = file_path.partition("/")
-    return head + "/" if sep else "./"
+    dirs = file_path.split("/")[:-1]  # drop the filename
+    if not dirs:
+        return "./"
+    return "/".join(dirs[:depth]) + "/"
 
 
 def compute_expertise(
     records: list[CommitFileRecord],
     now: datetime,
     lambda_decay: float = DEFAULT_LAMBDA,
+    module_depth: int = 1,
 ) -> dict[str, dict[str, ExpertiseCell]]:
     """Build ``author_email -> {module -> ExpertiseCell}`` from records.
 
@@ -47,7 +51,7 @@ def compute_expertise(
     commit_hashes: dict[tuple[str, str], set[str]] = {}
 
     for r in records:
-        module = module_of(r.file_path)
+        module = module_of(r.file_path, module_depth)
         days_ago = (now - r.committed_at).total_seconds() / 86400
         weight = math.exp(-lambda_decay * days_ago)
         lines_changed = r.lines_added + r.lines_deleted

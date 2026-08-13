@@ -34,6 +34,7 @@ def ingest_repo(
     lambda_decay: float = DEFAULT_LAMBDA,
     since_commit: str | None = None,
     since_date: datetime | None = None,
+    module_depth: int = 1,
 ) -> dict[str, int]:
     records = analyze_repository(repo_path, since_commit, since_date)
     # Idempotency guard: never insert a (commit, file) pair already persisted.
@@ -67,7 +68,9 @@ def ingest_repo(
         )
         for c in all_commits
     ]
-    expertise = compute_expertise(all_records, now=now, lambda_decay=lambda_decay)
+    expertise = compute_expertise(
+        all_records, now=now, lambda_decay=lambda_decay, module_depth=module_depth
+    )
 
     for row in session.exec(select(Expertise)).all():
         session.delete(row)

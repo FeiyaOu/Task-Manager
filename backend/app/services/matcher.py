@@ -48,7 +48,7 @@ def rank_developers(
         matched = {
             module: score
             for module, score in modules.items()
-            if (selected and module == selected) or module.rstrip("/").lower() in tokens
+            if (selected and module == selected) or (_tokenize(module) & tokens)
         }
         total = sum(matched.values())
         if not matched or total <= 0:

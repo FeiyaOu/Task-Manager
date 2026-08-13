@@ -83,3 +83,14 @@ def test_since_date_limits_ingested_commits(db_session, make_repo):
     assert result["new_commits"] == 1
     modules = {e.module_path for e in db_session.exec(select(Expertise)).all()}
     assert modules == {"recent/"}
+
+
+def test_module_depth_threads_through(db_session, make_repo):
+    repo = make_repo([
+        SeededCommit("Alice", "alice@x.com", days_ago=0,
+                     files={"Engine/Physics/x.cpp": "1\n",
+                            "Engine/Audio/y.cpp": "1\n"}),
+    ])
+    ingest_repo(db_session, repo, now=FIXED_NOW, module_depth=2)
+    modules = {e.module_path for e in db_session.exec(select(Expertise)).all()}
+    assert modules == {"Engine/Physics/", "Engine/Audio/"}

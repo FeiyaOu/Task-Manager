@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     decay_lambda: float = 0.01
     max_reassignments: int = 3
     assign_threshold: float = 0.0
+    module_depth: int = 1
     cors_origins: list[str] = ["http://localhost:5173"]
 
 

@@ -9,6 +9,7 @@ recency-weighted line changes.
 - `now: datetime` — injected reference time (NOT `datetime.now()` inside the function,
   so tests are deterministic).
 - `lambda_decay: float` — exponential decay constant (default `0.01`).
+- `module_depth: int` — how many leading path directories form a module (default `1`).
 
 ## Outputs
 - `dict[str, dict[str, ExpertiseCell]]` — mapping:
@@ -18,8 +19,9 @@ recency-weighted line changes.
   - `commit_count: int`
 
 ## Rules
-1. A file path is normalized to its module = top-level directory + `/`
-   (e.g. `auth/login.py` -> `auth/`).
+1. A file path is normalized to a module = its first `module_depth` directories + `/`
+   (default depth 1: `auth/login.py` -> `auth/`; depth 2: `auth/api/login.py` -> `auth/api/`).
+   When the path has fewer directories than `module_depth`, all available directories are used.
 2. A file at repo root (no directory) normalizes to module `./`.
 3. `lines_changed = lines_added + lines_deleted` per record.
 4. `recency_weight = e^(-lambda_decay * days_ago)` where
