@@ -10,7 +10,7 @@ from app.config import get_settings
 from app.database import get_session
 from app.models.config_state import ConfigState
 from app.models.expertise import Expertise
-from app.services.git_analyzer import NotAGitRepositoryError
+from app.services.git_analyzer import NotAGitRepositoryError, head_commit
 from app.services.repo_ingest import ingest_repo
 
 router = APIRouter(prefix="/api/repo", tags=["repo"])
@@ -54,11 +54,16 @@ def refresh_repo(
 def repo_status(session: Session = Depends(get_session)) -> dict:
     settings = get_settings()
     state = session.exec(select(ConfigState)).first()
+    last = state.last_analyzed_commit_hash if state else None
     developers = session.exec(select(Expertise.developer_email).distinct()).all()
     modules = session.exec(select(Expertise.module_path).distinct()).all()
+    head = head_commit(settings.repo_path)
     return {
         "repo_path": settings.repo_path,
-        "last_analyzed_commit": state.last_analyzed_commit_hash if state else None,
+        "last_analyzed_commit": last,
+        "head_commit": head,
+        # Stale = analyzed at least once but the repo has advanced past that point.
+        "is_stale": bool(last and head and head != last),
         "developer_count": len(set(developers)),
         "module_count": len(set(modules)),
     }
