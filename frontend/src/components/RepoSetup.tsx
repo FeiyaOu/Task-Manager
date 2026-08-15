@@ -17,7 +17,7 @@ export default function RepoSetup() {
 
   return (
     <div className="rounded-lg border bg-white p-4">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-1.5">
           <h2 className="text-sm font-semibold">Repository analysis</h2>
           <span className="group relative inline-flex">
@@ -49,48 +49,18 @@ export default function RepoSetup() {
           </span>
         </div>
 
-        <div className="flex flex-col items-end gap-1.5">
-          {isLoading ? (
-            <span className="text-xs text-slate-500">Checking…</span>
-          ) : analyzed ? (
-            <span className="text-xs text-green-700">
-              ✓ {status?.developer_count} developers · {status?.module_count} modules
-              {status?.last_analyzed_commit
-                ? ` · @${status.last_analyzed_commit.slice(0, 7)}`
-                : ''}
-            </span>
-          ) : (
-            <span className="text-xs text-amber-700">Not analyzed yet</span>
-          )}
-
-          <div className="flex flex-wrap items-center justify-end gap-3 text-xs">
-            <label className="flex items-center gap-1.5">
-              <input
-                type="radio"
-                checked={!useWindow}
-                onChange={() => setUseWindow(false)}
-              />
-              All history
-            </label>
-            <label className="flex items-center gap-1.5">
-              <input
-                type="radio"
-                checked={useWindow}
-                onChange={() => setUseWindow(true)}
-              />
-              Last
-              <input
-                type="number"
-                min={1}
-                value={days}
-                onChange={(e) => setDays(Number(e.target.value))}
-                disabled={!useWindow}
-                className="w-14 rounded border border-slate-300 px-1.5 py-0.5 disabled:bg-slate-100"
-              />
-              days
-            </label>
-          </div>
-        </div>
+        {isLoading ? (
+          <span className="text-xs text-slate-500">Checking…</span>
+        ) : analyzed ? (
+          <span className="text-xs text-green-700">
+            ✓ {status?.developer_count} developers · {status?.module_count} modules
+            {status?.last_analyzed_commit
+              ? ` · @${status.last_analyzed_commit.slice(0, 7)}`
+              : ''}
+          </span>
+        ) : (
+          <span className="text-xs text-amber-700">Not analyzed yet</span>
+        )}
       </div>
 
       {!analyzed && !isLoading && (
@@ -106,7 +76,32 @@ export default function RepoSetup() {
         </p>
       )}
 
-      <div className="mt-3">
+      <div className="mt-3 flex flex-wrap items-center gap-4">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="radio"
+            checked={!useWindow}
+            onChange={() => setUseWindow(false)}
+          />
+          All history
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="radio"
+            checked={useWindow}
+            onChange={() => setUseWindow(true)}
+          />
+          Last
+          <input
+            type="number"
+            min={1}
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+            disabled={!useWindow}
+            className="w-20 rounded border border-slate-300 px-2 py-1 disabled:bg-slate-100"
+          />
+          days
+        </label>
         <button
           onClick={handleAnalyze}
           disabled={refresh.isPending}
