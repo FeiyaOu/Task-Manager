@@ -22,3 +22,7 @@ class Task(SQLModel, table=True):
     matched_modules: list[str] = Field(default_factory=list, sa_column=Column(JSON))
     reassign_count: int = Field(default=0)
     match_tier: str | None = None  # module / broadened / text / unassigned
+    # Snapshot of the winning tier's ranked list (winner first), persisted once
+    # at creation so a decline can reassign to the next candidate.
+    candidates: list[dict] = Field(default_factory=list, sa_column=Column(JSON))
+    declined_emails: list[str] = Field(default_factory=list, sa_column=Column(JSON))

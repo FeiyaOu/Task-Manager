@@ -90,6 +90,16 @@ def assign_bug(
         score = near_miss.score if near_miss else None
         matched_modules = near_miss.matched_modules if near_miss else []
 
+    # Snapshot the winning tier's ranked list so a later decline can reassign.
+    candidates = [
+        {
+            "developer_email": c.developer_email,
+            "score": c.score,
+            "matched_modules": c.matched_modules,
+        }
+        for c in ranked
+    ]
+
     # Persist the task with state fields and reassign_count = 0.
     task_row = Task(
         bug_id=bug_row.id,
@@ -99,6 +109,8 @@ def assign_bug(
         matched_modules=matched_modules,
         reassign_count=0,
         match_tier=match_tier,
+        candidates=candidates,
+        declined_emails=[],
     )
     session.add(task_row)
     session.commit()

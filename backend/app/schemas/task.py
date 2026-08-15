@@ -16,3 +16,5 @@ class TaskRead(BaseModel):
     matched_modules: list[str]
     status: TaskStatus
     match_tier: str | None = None
+    reassign_count: int = 0
+    declined_emails: list[str] = []
