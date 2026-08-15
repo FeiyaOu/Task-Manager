@@ -35,6 +35,8 @@ export interface TaskRead {
   matched_modules: string[]
   status: TaskStatus
   match_tier: string | null
+  reassign_count: number
+  declined_emails: string[]
 }
 
 export interface RepoStatus {

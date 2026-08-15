@@ -38,3 +38,7 @@ export const refreshRepo = (days?: number) =>
     `/api/repo/refresh${days ? `?days=${days}` : ''}`,
     { method: 'POST' },
   )
+export const acceptTask = (taskId: number) =>
+  request<TaskRead>(`/api/tasks/${taskId}/accept`, { method: 'POST' })
+export const declineTask = (taskId: number) =>
+  request<TaskRead>(`/api/tasks/${taskId}/decline`, { method: 'POST' })
