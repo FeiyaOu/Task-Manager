@@ -38,3 +38,5 @@ export const refreshRepo = (days?: number) =>
     `/api/repo/refresh${days ? `?days=${days}` : ''}`,
     { method: 'POST' },
   )
+export const getDevelopers = (days?: number) =>
+  request<string[]>(`/api/developers${days ? `?days=${days}` : ''}`)
