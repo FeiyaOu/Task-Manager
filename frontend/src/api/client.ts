@@ -42,3 +42,5 @@ export const acceptTask = (taskId: number) =>
   request<TaskRead>(`/api/tasks/${taskId}/accept`, { method: 'POST' })
 export const declineTask = (taskId: number) =>
   request<TaskRead>(`/api/tasks/${taskId}/decline`, { method: 'POST' })
+export const getDevelopers = (days?: number) =>
+  request<string[]>(`/api/developers${days ? `?days=${days}` : ''}`)
